@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sentinel-Purge — Forensic-grade secure file erasure with NIST SP 800-88 compliance. Clear or Purge files with authenticated authorization and live audit proof.">
+    <title>Sentinel-Purge — Secure Erasure Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ================================================================
+           DESIGN SYSTEM
+           ================================================================ */
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(30, 41, 59, 0.8);
+            --bg-glass: rgba(15, 23, 42, 0.6);
+            --border-glass: rgba(99, 102, 241, 0.15);
+            --border-subtle: rgba(148, 163, 184, 0.1);
+            --accent-indigo: #6366f1;
+            --accent-indigo-glow: rgba(99, 102, 241, 0.4);
+            --accent-cyan: #22d3ee;
+            --accent-cyan-glow: rgba(34, 211, 238, 0.3);
+            --accent-emerald: #10b981;
+            --accent-emerald-glow: rgba(16, 185, 129, 0.3);
+            --accent-rose: #f43f5e;
+            --accent-rose-glow: rgba(244, 63, 94, 0.3);
+            --accent-amber: #f59e0b;
+            --accent-amber-glow: rgba(245, 158, 11, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.08);
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 600px 400px at 20% 20%, rgba(99, 102, 241, 0.06), transparent),
+                radial-gradient(ellipse 500px 350px at 80% 70%, rgba(34, 211, 238, 0.04), transparent),
+                radial-gradient(ellipse 400px 300px at 50% 50%, rgba(16, 185, 129, 0.03), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ================================================================
+           LAYOUT
+           ================================================================ */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+        }
+
+        /* ================================================================
+           HEADER
+           ================================================================ */
+        .app-header {
+            text-align: center;
+            margin-bottom: 48px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .app-header__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--accent-indigo);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .app-header__badge::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent-indigo);
+            box-shadow: 0 0 8px var(--accent-indigo-glow);
+            animation: pulse 2s infinite;
+        }
+
+        .app-header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-indigo) 50%, var(--accent-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .app-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        /* ================================================================
+           GLASS CARD
+           ================================================================ */
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px) saturate(1.2);
+            -webkit-backdrop-filter: blur(20px) saturate(1.2);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-glow);
+            transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+            animation: fadeInUp 0.5s ease-out both;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .glass-card:nth-child(2) { animation-delay: 0.1s; }
+        .glass-card:nth-child(3) { animation-delay: 0.2s; }
+        .glass-card:nth-child(4) { animation-delay: 0.3s; }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title__icon {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .card-title__icon--upload { background: rgba(99, 102, 241, 0.15); }
+        .card-title__icon--operation { background: rgba(245, 158, 11, 0.15); }
+        .card-title__icon--auth { background: rgba(244, 63, 94, 0.15); }
+        .card-title__icon--audit { background: rgba(34, 211, 238, 0.15); }
+
+        /* ================================================================
+           DROP ZONE
+           ================================================================ */
+        .drop-zone {
+            border: 2px dashed rgba(99, 102, 241, 0.25);
+            border-radius: var(--radius-lg);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.03), rgba(34, 211, 238, 0.02));
+            opacity: 0;
+            transition: opacity var(--transition-smooth);
+        }
+
+        .drop-zone:hover, .drop-zone--active {
+            border-color: var(--accent-indigo);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .drop-zone:hover::before, .drop-zone--active::before { opacity: 1; }
+
+        .drop-zone__icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.7;
+        }
+
+        .drop-zone__text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .drop-zone__text strong {
+            color: var(--accent-indigo);
+            font-weight: 600;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* File info after upload */
+        .file-info {
+            display: none;
+            margin-top: 16px;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            font-size: 0.85rem;
+            color: var(--accent-emerald);
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .file-info--visible { display: flex; align-items: center; gap: 10px; }
+
+        .file-info__name {
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .file-info__size {
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        /* ================================================================
+           OPERATION SELECTOR
+           ================================================================ */
+        .op-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .op-option {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .op-option input { position: absolute; opacity: 0; pointer-events: none; }
+
+        .op-option__label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 24px 16px;
+            border-radius: var(--radius-lg);
+            border: 1.5px solid var(--border-subtle);
+            background: rgba(15, 23, 42, 0.4);
+            transition: all var(--transition-smooth);
+            text-align: center;
+        }
+
+        .op-option__label:hover {
+            border-color: rgba(148, 163, 184, 0.25);
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        .op-option input:checked + .op-option__label {
+            border-color: var(--accent-indigo);
+            background: rgba(99, 102, 241, 0.08);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+
+        .op-option__icon { font-size: 1.5rem; }
+
+        .op-option__name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .op-option__desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ================================================================
+           INPUT FIELD
+           ================================================================ */
+        .input-group { position: relative; }
+
+        .input-group__field {
+            width: 100%;
+            padding: 14px 18px;
+            padding-right: 48px;
+            border-radius: var(--radius-md);
+            border: 1.5px solid var(--border-subtle);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+        }
+
+        .input-group__field::placeholder { color: var(--text-muted); }
+
+        .input-group__field:focus {
+            border-color: var(--accent-indigo);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .input-group__toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+            transition: color var(--transition-fast);
+        }
+
+        .input-group__toggle:hover { color: var(--text-secondary); }
+
+        /* ================================================================
+           EXECUTE BUTTON
+           ================================================================ */
+        .btn-execute {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent-indigo), #8b5cf6);
+            color: #fff;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-smooth);
+            letter-spacing: 0.02em;
+        }
+
+        .btn-execute::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1));
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .btn-execute:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.35);
+        }
+
+        .btn-execute:hover:not(:disabled)::before { opacity: 1; }
+
+        .btn-execute:active:not(:disabled) { transform: translateY(0); }
+
+        .btn-execute:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-execute--loading {
+            pointer-events: none;
+        }
+
+        /* ================================================================
+           RESULT BANNER
+           ================================================================ */
+        .result-banner {
+            display: none;
+            padding: 18px 20px;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: fadeInUp 0.3s ease-out;
+            margin-bottom: 24px;
+        }
+
+        .result-banner--visible { display: flex; align-items: flex-start; gap: 12px; }
+
+        .result-banner--success {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--accent-emerald);
+        }
+
+        .result-banner--error {
+            background: rgba(244, 63, 94, 0.08);
+            border: 1px solid rgba(244, 63, 94, 0.25);
+            color: var(--accent-rose);
+        }
+
+        .result-banner__icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+        .result-banner__text { line-height: 1.5; }
+
+        /* ================================================================
+           AUDIT LOG PANEL
+           ================================================================ */
+        .audit-log {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: var(--radius-md);
+            background: rgba(2, 6, 14, 0.6);
+            border: 1px solid var(--border-subtle);
+            padding: 4px;
+        }
+
+        .audit-log::-webkit-scrollbar { width: 6px; }
+        .audit-log::-webkit-scrollbar-track { background: transparent; }
+        .audit-log::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 3px;
+        }
+
+        .audit-log__empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .audit-entry {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: start;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            animation: slideIn 0.25s ease-out;
+            transition: background var(--transition-fast);
+        }
+
+        .audit-entry:hover { background: rgba(30, 41, 59, 0.4); }
+
+        .audit-entry__badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .audit-entry__badge--success { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .audit-entry__badge--failure { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+        .audit-entry__badge--info    { background: rgba(34, 211, 238, 0.12); color: var(--accent-cyan); }
+        .audit-entry__badge--warn    { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+
+        .audit-entry__detail {
+            color: var(--text-secondary);
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .audit-entry__time {
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            white-space: nowrap;
+        }
+
+        /* ================================================================
+           SPINNER
+           ================================================================ */
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        /* ================================================================
+           ANIMATIONS
+           ================================================================ */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-8px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
+        @media (max-width: 600px) {
+            .app-container { padding: 24px 16px 40px; }
+            .glass-card { padding: 24px 18px; }
+            .app-header h1 { font-size: 1.6rem; }
+            .op-selector { grid-template-columns: 1fr; }
+            .drop-zone { padding: 32px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="app-header__badge">Sentinel-Purge Console</div>
+            <h1>Secure File Erasure</h1>
+            <p>NIST SP 800-88 compliant Clear &amp; Purge with authenticated authorization</p>
+        </header>
+
+        <!-- RESULT BANNER -->
+        <div id="resultBanner" class="result-banner">
+            <span class="result-banner__icon" id="resultIcon"></span>
+            <span class="result-banner__text" id="resultText"></span>
+        </div>
+
+        <!-- STEP 1: FILE UPLOAD -->
+        <section class="glass-card">
+            <h2 class="card-title">
+                <span class="card-title__icon card-title__icon--upload">📁</span>
+                Step 1 — Select Target File
+            </h2>
+            <div class="drop-zone" id="dropZone">
+                <input type="file" id="fileInput" aria-label="Select file for erasure">
+                <div class="drop-zone__icon">📄</div>
+                <div class="drop-zone__text">
+                    <strong>Click to browse</strong> or drag &amp; drop a file here<br>
+                    Max 100 MB — any file type
+                </div>
+            </div>
+            <div class="file-info" id="fileInfo">
+                <span>✅</span>
+                <span class="file-info__name" id="fileName"></span>
+                <span class="file-info__size" id="fileSize"></span>
+            </div>
+        </section>
+
+        <!-- STEP 2: OPERATION -->
+        <section class="glass-card">
+            <h2 class="card-title">
+                <span class="card-title__icon card-title__icon--operation">⚙️</span>
+                Step 2 — Choose Operation
+            </h2>
+            <div class="op-selector">
+                <label class="op-option">
+                    <input type="radio" name="operation" value="clear" id="opClear" checked>
+                    <div class="op-option__label">
+                        <span class="op-option__icon">🧹</span>
+                        <span class="op-option__name">Clear</span>
+                        <span class="op-option__desc">Overwrite with zeros &amp; truncate to 0 bytes. File entry stays intact.</span>
+                    </div>
+                </label>
+                <label class="op-option">
+                    <input type="radio" name="operation" value="purge" id="opPurge">
+                    <div class="op-option__label">
+                        <span class="op-option__icon">🔥</span>
+                        <span class="op-option__name">Purge</span>
+                        <span class="op-option__desc">Overwrite with random data, truncate, then permanently delete the file.</span>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <!-- STEP 3: AUTH -->
+        <section class="glass-card">
+            <h2 class="card-title">
+                <span class="card-title__icon card-title__icon--auth">🔑</span>
+                Step 3 — Authorization Key
+            </h2>
+            <div class="input-group">
+                <input
+                    type="password"
+                    class="input-group__field"
+                    id="secretKey"
+                    placeholder="Enter secret key to authorize operation…"
+                    autocomplete="off"
+                    aria-label="Secret authorization key"
+                >
+                <button class="input-group__toggle" id="togglePassword" type="button" aria-label="Toggle password visibility">👁️</button>
+            </div>
+        </section>
+
+        <!-- EXECUTE -->
+        <button class="btn-execute" id="executeBtn" disabled>
+            Execute Erasure
+        </button>
+
+        <!-- STEP 4: AUDIT LOG -->
+        <section class="glass-card" style="margin-top: 24px;">
+            <h2 class="card-title">
+                <span class="card-title__icon card-title__icon--audit">📋</span>
+                Live Audit Trail
+            </h2>
+            <div class="audit-log" id="auditLog">
+                <div class="audit-log__empty" id="auditEmpty">
+                    No operations executed yet. The audit proof trail will appear here in real time.
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ----------------------------------------------------------------
+        // DOM refs
+        // ----------------------------------------------------------------
+        const dropZone      = document.getElementById('dropZone');
+        const fileInput     = document.getElementById('fileInput');
+        const fileInfo      = document.getElementById('fileInfo');
+        const fileName      = document.getElementById('fileName');
+        const fileSize      = document.getElementById('fileSize');
+        const secretKey     = document.getElementById('secretKey');
+        const togglePwd     = document.getElementById('togglePassword');
+        const executeBtn    = document.getElementById('executeBtn');
+        const resultBanner  = document.getElementById('resultBanner');
+        const resultIcon    = document.getElementById('resultIcon');
+        const resultText    = document.getElementById('resultText');
+        const auditLog      = document.getElementById('auditLog');
+        const auditEmpty    = document.getElementById('auditEmpty');
+
+        let uploadedFilePath = null;
+
+        // ----------------------------------------------------------------
+        // Helpers
+        // ----------------------------------------------------------------
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getSelectedOperation() {
+            return document.querySelector('input[name="operation"]:checked')?.value || 'clear';
+        }
+
+        function updateExecuteBtn() {
+            executeBtn.disabled = !(uploadedFilePath && secretKey.value.trim());
+        }
+
+        function formatTime(iso) {
+            try {
+                const d = new Date(iso);
+                return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                       + '.' + String(d.getMilliseconds()).padStart(3, '0');
+            } catch { return ''; }
+        }
+
+        function badgeClass(action, success) {
+            if (!success) return 'audit-entry__badge--failure';
+            if (action.includes('AUTH'))  return 'audit-entry__badge--info';
+            if (action.includes('START')) return 'audit-entry__badge--warn';
+            return 'audit-entry__badge--success';
+        }
+
+        // ----------------------------------------------------------------
+        // Drop zone
+        // ----------------------------------------------------------------
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('drop-zone--active'); });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('drop-zone--active'); });
+        });
+
+        dropZone.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) { fileInput.files = files; handleFileSelect(files[0]); }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) handleFileSelect(fileInput.files[0]);
+        });
+
+        async function handleFileSelect(file) {
+            // Upload to server
+            const formData = new FormData();
+            formData.append('file', file);
+
+            executeBtn.textContent = 'Uploading…';
+            executeBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showResult(false, data.error || 'Upload failed.');
+                    return;
+                }
+
+                uploadedFilePath = data.path;
+                fileName.textContent = data.filename;
+                fileSize.textContent = formatBytes(data.size);
+                fileInfo.classList.add('file-info--visible');
+                updateExecuteBtn();
+                executeBtn.textContent = 'Execute Erasure';
+            } catch (err) {
+                showResult(false, 'Upload error: ' + err.message);
+                executeBtn.textContent = 'Execute Erasure';
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Password toggle
+        // ----------------------------------------------------------------
+        togglePwd.addEventListener('click', () => {
+            const isPassword = secretKey.type === 'password';
+            secretKey.type = isPassword ? 'text' : 'password';
+            togglePwd.textContent = isPassword ? '🔒' : '👁️';
+        });
+
+        secretKey.addEventListener('input', updateExecuteBtn);
+
+        // ----------------------------------------------------------------
+        // Execute
+        // ----------------------------------------------------------------
+        executeBtn.addEventListener('click', async () => {
+            if (!uploadedFilePath || !secretKey.value.trim()) return;
+
+            const operation = getSelectedOperation();
+            const key = secretKey.value.trim();
+
+            // Confirm for purge
+            if (operation === 'purge') {
+                if (!confirm('⚠️ PURGE will PERMANENTLY DELETE the file. This cannot be undone.\n\nProceed?')) return;
+            }
+
+            executeBtn.disabled = true;
+            executeBtn.classList.add('btn-execute--loading');
+            executeBtn.innerHTML = '<span class="spinner"></span> Executing ' + operation.toUpperCase() + '…';
+            hideResult();
+
+            try {
+                const res = await fetch('/api/erasure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: uploadedFilePath,
+                        operation: operation,
+                        secret_key: key,
+                    }),
+                });
+
+                const data = await res.json();
+
+                // Render audit trail
+                renderAuditLog(data.audit_log || []);
+
+                // Show result
+                showResult(data.success, data.detail || (data.error || 'Unknown error'));
+
+                // If purge succeeded, clear the upload state
+                if (data.success && operation === 'purge') {
+                    uploadedFilePath = null;
+                    fileInfo.classList.remove('file-info--visible');
+                    fileInput.value = '';
+                }
+
+            } catch (err) {
+                showResult(false, 'Request error: ' + err.message);
+            } finally {
+                executeBtn.classList.remove('btn-execute--loading');
+                executeBtn.textContent = 'Execute Erasure';
+                updateExecuteBtn();
+            }
+        });
+
+        // ----------------------------------------------------------------
+        // Result banner
+        // ----------------------------------------------------------------
+        function showResult(success, message) {
+            resultBanner.className = 'result-banner result-banner--visible ' +
+                (success ? 'result-banner--success' : 'result-banner--error');
+            resultIcon.textContent = success ? '✅' : '❌';
+            resultText.textContent = message;
+        }
+
+        function hideResult() {
+            resultBanner.className = 'result-banner';
+        }
+
+        // ----------------------------------------------------------------
+        // Audit log renderer
+        // ----------------------------------------------------------------
+        function renderAuditLog(entries) {
+            auditEmpty.style.display = 'none';
+            // Clear previous entries but keep the empty placeholder
+            auditLog.querySelectorAll('.audit-entry').forEach(el => el.remove());
+
+            entries.forEach((entry, idx) => {
+                const div = document.createElement('div');
+                div.className = 'audit-entry';
+                div.style.animationDelay = (idx * 60) + 'ms';
+
+                const badge = document.createElement('span');
+                badge.className = 'audit-entry__badge ' + badgeClass(entry.action, entry.success);
+                badge.textContent = entry.action;
+
+                const detail = document.createElement('span');
+                detail.className = 'audit-entry__detail';
+                detail.textContent = entry.detail;
+
+                const time = document.createElement('span');
+                time.className = 'audit-entry__time';
+                time.textContent = formatTime(entry.timestamp);
+
+                div.appendChild(badge);
+                div.appendChild(detail);
+                div.appendChild(time);
+                auditLog.appendChild(div);
+            });
+
+            // Scroll to bottom
+            auditLog.scrollTop = auditLog.scrollHeight;
+        }
+
+        // Show empty state if no entries
+        if (auditLog.querySelectorAll('.audit-entry').length === 0) {
+            auditEmpty.style.display = 'block';
+        }
+
+    })();
+    </script>
+</body>
+</html>
