@@ -1,0 +1,13 @@
+@font-face {
+    font-family: 'Bootzy TM';
+    src: url('BootzyTM.eot');
+    src: local('Bootzy TM'), local('BootzyTM'),
+        url('BootzyTM.eot?#iefix') format('embedded-opentype'),
+        url('BootzyTM.woff2') format('woff2'),
+        url('BootzyTM.woff') format('woff'),
+        url('BootzyTM.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
