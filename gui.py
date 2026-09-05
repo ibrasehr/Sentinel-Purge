@@ -1,6 +1,7 @@
 """
 Sentinel-Purge Desktop GUI
-Industrial-Gothic styled forensic media sanitization dashboard powered by CustomTkinter.
+Industrial-Gothic Digital Forensics & Media Sanitization Console
+Designed for high-contrast architectural discipline: Purple & Black hue palette only.
 """
 
 from __future__ import annotations
@@ -28,72 +29,58 @@ from erasure.device_detection import validate_sanitization_target, StorageMediaT
 
 
 # =============================================================================
-# RESOURCE PATH RESOLUTION & FONT LOADER
+# MANDATORY FONT LOADING LOGIC (PRESERVED EXACTLY)
 # =============================================================================
-def get_resource_path(relative_path: str) -> str:
-    """Resolve resource path for dev mode and PyInstaller frozen executable."""
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+FONT_FILENAME = "BootzyTM.ttf"
 
+def resolve_font_path():
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, "font", FONT_FILENAME)
+    return os.path.join(r"C:\Users\DELL\Downloads\font", FONT_FILENAME)
 
-def load_gothic_font() -> str:
-    """
-    Locate and load custom Industrial-Gothic font file with fallback to monospaced.
-    Searches bundled assets, local workspace font folder, and default user download path.
-    """
-    candidate_paths = [
-        get_resource_path(os.path.join("font", "BootzyTM.ttf")),
-        get_resource_path(os.path.join("fonts", "BootzyTM.ttf")),
-        os.path.join(os.path.abspath("."), "font", "BootzyTM.ttf"),
-        r"C:\Users\DELL\Downloads\font\BootzyTM.ttf",
-    ]
+FONT_PATH = resolve_font_path()
 
-    # Search directories dynamically for any .ttf or .otf
-    for search_dir in [
-        get_resource_path("font"),
-        get_resource_path("fonts"),
-        os.path.join(os.path.abspath("."), "font"),
-        r"C:\Users\DELL\Downloads\font",
-    ]:
-        if os.path.exists(search_dir):
-            for f in os.listdir(search_dir):
-                if f.lower().endswith((".ttf", ".otf")):
-                    candidate_paths.append(os.path.join(search_dir, f))
+if os.path.exists(FONT_PATH):
+    try:
+        ctk.FontManager.load_font(FONT_PATH)
+        GOTHIC_FONT = "BootzyTM"  # Hardcoded font family name
+        print(f"[+] Loaded font: {FONT_PATH}")
+    except Exception as e:
+        print(f"[-] Font load error: {e}")
+        GOTHIC_FONT = "Consolas"
+else:
+    print(f"[-] Font file not found at: {FONT_PATH}")
+    GOTHIC_FONT = "Consolas"
 
-    for font_file in candidate_paths:
-        if os.path.isfile(font_file):
-            try:
-                loaded = ctk.FontManager.load_font(font_file)
-                if loaded:
-                    return loaded
-                return "Bootzy TM"
-            except Exception as e:
-                print(f"[!] Note: Could not load custom font {font_file}: {e}")
-
-    return "Consolas"
+# Typography Hierarchy
+FONT_BANNER = (GOTHIC_FONT, 38, "bold")
+FONT_HEADER = (GOTHIC_FONT, 18)
+FONT_BUTTON = (GOTHIC_FONT, 20, "bold")
+FONT_BODY = ("Consolas", 11)  # Monospace for technical data & logs
+FONT_BODY_BOLD = ("Consolas", 11, "bold")
+FONT_SUBTITLE = ("Consolas", 10)
 
 
 # =============================================================================
-# STRICT INDUSTRIAL-GOTHIC PALETTE
+# PURPLE & BLACK COLOR PALETTE (STRICT SINGLE-HUE SYSTEM)
 # =============================================================================
-# Main Window & Canvas Background: #301934 (Deep Eggplant)
-# Main Text, Values & Titles:     #CBC3E3 (Light Lavender / Parchment)
-# Primary Accent:                 #AA98A9 (Dusty Industrial Lavender)
-# Secondary Accent:               #51414F (Dark Grey-Purple)
-PALETTE = {
-    "bg_main": "#301934",        # Deep Eggplant
-    "text_main": "#CBC3E3",      # Light Lavender / Parchment
-    "accent_primary": "#AA98A9", # Dusty Industrial Lavender
-    "accent_secondary": "#51414F", # Dark Grey-Purple
-    "bg_terminal": "#301934",    # Deep Terminal Background
-}
-
-MONO_FONT = "Consolas"
+COLOR_BG = "#0C0A10"                # Near-black canvas with faint violet undertone
+COLOR_PANEL = "#1A1420"             # Charcoal-violet structural panel
+COLOR_PANEL_ALT = "#140F1A"         # Slightly deeper panel recess
+COLOR_BORDER_PLUM = "#332638"       # 1px hairline border in muted plum
+COLOR_ACCENT_AMETHYST = "#6B2FA6"   # Deep royal / amethyst purple (primary actions & active states)
+COLOR_ACCENT_DIVIDER = "#5D2E8C"    # Amethyst section divider bar
+COLOR_ACCENT_LAVENDER = "#B8A9C9"   # Light desaturated lavender-grey (highlights & active labels)
+COLOR_MUTED_LAVENDER = "#9B8AAE"    # Secondary muted lavender-grey
+COLOR_DANGER_AUBERGINE = "#2A1230"  # Dark aubergine fill for destructive execution
+COLOR_DANGER_BORDER = "#8A38D4"     # Intense electric violet border for destructive warnings
+COLOR_TEXT = "#EDE7F0"              # Pale lavender-white body text
+COLOR_SUCCESS_LILAC = "#C9A9E8"     # Bright lilac for verified & success telemetry
+COLOR_TERMINAL_BG = "#08060B"       # Ultra-deep terminal screen
 
 
 def format_bytes(num_bytes: int) -> str:
-    """Format byte count into human-readable representation."""
+    """Format byte count into monospaced human-readable representation."""
     if num_bytes < 0:
         return "0 B"
     for unit in ["B", "KB", "MB", "GB", "TB"]:
@@ -104,363 +91,409 @@ def format_bytes(num_bytes: int) -> str:
 
 
 # =============================================================================
-# MAIN APPLICATION WINDOW
+# MAIN FORENSIC APPLICATION WINDOW
 # =============================================================================
 class SentinelPurgeApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Load Custom Gothic Font Family
-        self.gothic_family = load_gothic_font()
-
-        # Window Configuration
-        self.title("SENTINEL // PURGE — INDUSTRIAL-GOTHIC SANITIZATION CONSOLE")
-        self.geometry("1000x900")
-        self.minsize(940, 820)
-        self.configure(fg_color=PALETTE["bg_main"])
+        # Root Window Configuration
+        self.title("SENTINEL // PURGE — Industrial-Gothic Digital Forensics Console")
+        self.geometry("1020x920")
+        self.minsize(960, 840)
+        self.configure(fg_color=COLOR_BG)
 
         ctk.set_appearance_mode("dark")
 
-        # Application State
+        # Operational State
         self.selected_file: Optional[Path] = None
         self.file_size_bytes: int = 0
         self.is_sanitizing: bool = False
         self.last_certificate_path: Optional[str] = None
         self.sanitizer = Sanitizer(certificates_dir="certificates")
 
-        # Protocol mapping
+        # Protocol Mapping
         self.protocol_map = {
-            "NIST SP 800-88 Rev. 1 Clear (1-Pass Cryptographic Random)": SanitizationAlgorithm.NIST_800_88_CLEAR,
+            "NIST SP 800-88 Rev. 1 Clear (1-Pass Pseudo-Random)": SanitizationAlgorithm.NIST_800_88_CLEAR,
             "DoD 5220.22-M Legacy (3-Pass Zeros/Ones/Random)": SanitizationAlgorithm.LEGACY_DOD_5220_22_M,
             "Quick Zero Overwrite (1-Pass Fixed 0x00)": SanitizationAlgorithm.ZERO_OVERWRITE,
         }
 
-        # Build UI Structure
+        # Build Interface
         self._create_layout()
-        self._log("SYSTEM", "Sentinel-Purge Industrial-Gothic Engine initialized.", PALETTE["accent_primary"])
-        self._log("STATUS", "Engine status: READY. Select a target file to begin.", PALETTE["text_main"])
+
+        # Telemetry Initial State
+        self._log("SYSTEM", "Forensic Media Sanitization Engine initialized.", COLOR_MUTED_LAVENDER)
+        self._log("AUDIT", "Hardware scope validation active. Awaiting operator target.", COLOR_MUTED_LAVENDER)
 
     # -------------------------------------------------------------------------
-    # UI CONSTRUCTION (MODULAR ARCHITECTURAL GRID)
+    # LAYOUT & ARCHITECTURAL STRUCTURE
     # -------------------------------------------------------------------------
     def _create_layout(self):
-        # Scrollable Main Workspace Canvas
+        # Master Workspace Frame
         self.main_container = ctk.CTkScrollableFrame(
             self,
-            fg_color=PALETTE["bg_main"],
+            fg_color=COLOR_BG,
             corner_radius=0,
-            scrollbar_button_color=PALETTE["accent_secondary"],
-            scrollbar_button_hover_color=PALETTE["accent_primary"],
+            scrollbar_button_color=COLOR_BORDER_PLUM,
+            scrollbar_button_hover_color=COLOR_ACCENT_AMETHYST,
         )
-        self.main_container.pack(fill="both", expand=True, padx=24, pady=20)
+        self.main_container.pack(fill="both", expand=True, padx=26, pady=22)
 
-        self._build_header()
+        # Fallback Notification (Displays visibly if BootzyTM.ttf failed to load)
+        if GOTHIC_FONT == "Consolas":
+            self._build_font_warning_banner()
+
+        self._build_header_banner()
+        self._build_divider()
         self._build_target_panel()
         self._build_controls_panel()
         self._build_telemetry_panel()
         self._build_footer()
 
-    def _build_header(self):
-        """Header Section with Gothic branding title and architectural badge."""
-        header_panel = ctk.CTkFrame(
+    def _build_font_warning_banner(self):
+        """Visible diagnostic alert displayed if custom typography fell back to monospace."""
+        warn_frame = ctk.CTkFrame(
             self.main_container,
-            fg_color=PALETTE["accent_secondary"],
-            corner_radius=0,
+            fg_color=COLOR_DANGER_AUBERGINE,
+            border_color=COLOR_DANGER_BORDER,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
-        )
-        header_panel.pack(fill="x", pady=(0, 16), ipady=6)
-
-        inner_frame = ctk.CTkFrame(header_panel, fg_color="transparent", corner_radius=0)
-        inner_frame.pack(fill="x", padx=20, pady=12)
-
-        # Left branding block
-        brand_left = ctk.CTkFrame(inner_frame, fg_color="transparent", corner_radius=0)
-        brand_left.pack(side="left", fill="y")
-
-        title_label = ctk.CTkLabel(
-            brand_left,
-            text="SENTINEL // PURGE",
-            font=ctk.CTkFont(family=self.gothic_family, size=24, weight="bold"),
-            text_color=PALETTE["text_main"],
-        )
-        title_label.pack(anchor="w")
-
-        subtitle_label = ctk.CTkLabel(
-            brand_left,
-            text="NIST SP 800-88 MEDIA SANITIZATION & FORENSIC DESTRUCTION ENGINE",
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
-            text_color=PALETTE["accent_primary"],
-        )
-        subtitle_label.pack(anchor="w", pady=(4, 0))
-
-        # Right status badge (architectural recess)
-        self.status_badge = ctk.CTkLabel(
-            inner_frame,
-            text="[ ENGINE READY ]",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["text_main"],
-            fg_color=PALETTE["bg_main"],
             corner_radius=0,
-            padx=16,
-            pady=8,
         )
-        self.status_badge.pack(side="right", padx=0)
+        warn_frame.pack(fill="x", pady=(0, 14), ipady=4)
+
+        warn_label = ctk.CTkLabel(
+            warn_frame,
+            text=f"[ TYPOGRAPHY NOTICE: 'BootzyTM' NOT FOUND AT {FONT_PATH} — FALLBACK TO CONSOLAS ACTIVE ]",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_ACCENT_LAVENDER,
+        )
+        warn_label.pack(padx=12, pady=4)
+
+    def _build_header_banner(self):
+        """Commanding Cathedral-Scale Header Banner with architectural status badge."""
+        header_frame = ctk.CTkFrame(
+            self.main_container,
+            fg_color=COLOR_PANEL,
+            border_color=COLOR_BORDER_PLUM,
+            border_width=1,
+            corner_radius=0,
+        )
+        header_frame.pack(fill="x", pady=(0, 12))
+
+        inner = ctk.CTkFrame(header_frame, fg_color="transparent", corner_radius=0)
+        inner.pack(fill="x", padx=24, pady=18)
+
+        # Left: Typographic Title & Forensics Subtitle
+        left_box = ctk.CTkFrame(inner, fg_color="transparent", corner_radius=0)
+        left_box.pack(side="left", fill="y")
+
+        title_lbl = ctk.CTkLabel(
+            left_box,
+            text="SENTINEL // PURGE",
+            font=FONT_BANNER,
+            text_color=COLOR_TEXT,
+        )
+        title_lbl.pack(anchor="w")
+
+        subtitle_lbl = ctk.CTkLabel(
+            left_box,
+            text="FORENSIC DATA SANITIZATION & METADATA ERASURE APPARATUS // NIST SP 800-88 REV. 1",
+            font=FONT_SUBTITLE,
+            text_color=COLOR_MUTED_LAVENDER,
+        )
+        subtitle_lbl.pack(anchor="w", pady=(6, 0))
+
+        # Right: Architectural Status Terminal Badge
+        right_box = ctk.CTkFrame(inner, fg_color="transparent", corner_radius=0)
+        right_box.pack(side="right", fill="y")
+
+        self.status_badge = ctk.CTkLabel(
+            right_box,
+            text="[ ENGINE: STANDBY ]",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_SUCCESS_LILAC,
+            fg_color=COLOR_BG,
+            corner_radius=0,
+            padx=18,
+            pady=10,
+        )
+        self.status_badge.pack(anchor="e")
+
+    def _build_divider(self):
+        """Thin amethyst horizontal divider separating header from technical modules."""
+        divider = ctk.CTkFrame(
+            self.main_container,
+            fg_color=COLOR_ACCENT_DIVIDER,
+            height=2,
+            corner_radius=0,
+        )
+        divider.pack(fill="x", pady=(0, 16))
 
     def _build_target_panel(self):
-        """Panel 01: Target File Selection & Metadata Inspection Grid."""
+        """Structural Card 01: Target File Specification & Inode Analysis."""
         panel = ctk.CTkFrame(
             self.main_container,
-            fg_color=PALETTE["accent_secondary"],
-            corner_radius=0,
+            fg_color=COLOR_PANEL,
+            border_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
+            corner_radius=0,
         )
         panel.pack(fill="x", pady=(0, 16))
 
-        # Panel Header Bar
-        header_bar = ctk.CTkFrame(panel, fg_color=PALETTE["bg_main"], corner_radius=0)
+        # Panel Header with schematic corner notation
+        header_bar = ctk.CTkFrame(panel, fg_color=COLOR_PANEL_ALT, corner_radius=0)
         header_bar.pack(fill="x", padx=1, pady=1)
 
-        header_lbl = ctk.CTkLabel(
+        section_lbl = ctk.CTkLabel(
             header_bar,
-            text="// 01. TARGET FILE SPECIFICATION & FORENSIC METADATA",
-            font=ctk.CTkFont(family=self.gothic_family, size=13, weight="bold"),
-            text_color=PALETTE["text_main"],
+            text="┌─ [ 01 ] TARGET FILE SPECIFICATION & CRYPTOGRAPHIC INODE",
+            font=FONT_HEADER,
+            text_color=COLOR_ACCENT_LAVENDER,
         )
-        header_lbl.pack(anchor="w", padx=16, pady=8)
+        section_lbl.pack(side="left", padx=16, pady=10)
 
-        content_area = ctk.CTkFrame(panel, fg_color="transparent", corner_radius=0)
-        content_area.pack(fill="x", padx=16, pady=14)
+        corner_tag = ctk.CTkLabel(
+            header_bar,
+            text="SEC-OPS // LEVEL 4",
+            font=FONT_BODY,
+            text_color=COLOR_BORDER_PLUM,
+        )
+        corner_tag.pack(side="right", padx=16)
 
-        # Secondary Action Button (Hollow Design with Dusty Lavender Border)
-        self.target_btn_card = ctk.CTkButton(
-            content_area,
-            text="[ + ]  BROWSE & SELECT TARGET FILE",
-            font=ctk.CTkFont(family=MONO_FONT, size=13, weight="bold"),
-            fg_color="transparent",
-            hover_color=PALETTE["accent_secondary"],
+        # Content Area
+        content = ctk.CTkFrame(panel, fg_color="transparent", corner_radius=0)
+        content.pack(fill="x", padx=18, pady=14)
+
+        # Secondary Button (Hollow Design with Lavender-Grey border)
+        self.btn_select_target = ctk.CTkButton(
+            content,
+            text="SELECT TARGET EVIDENCE FILE",
+            font=FONT_BUTTON,
+            fg_color=COLOR_PANEL_ALT,
+            hover_color=COLOR_BORDER_PLUM,
+            border_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
-            text_color=PALETTE["accent_primary"],
+            text_color=COLOR_ACCENT_LAVENDER,
             height=46,
             corner_radius=0,
             command=self._select_file_dialog,
         )
-        self.target_btn_card.pack(fill="x", pady=(0, 12))
+        self.btn_select_target.pack(fill="x", pady=(0, 14))
 
-        # Metadata Inspection Recess
+        # Monospace Inode Metadata Box
         details_box = ctk.CTkFrame(
-            content_area,
-            fg_color=PALETTE["bg_main"],
-            corner_radius=0,
+            content,
+            fg_color=COLOR_BG,
+            border_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
+            corner_radius=0,
         )
-        details_box.pack(fill="x", ipady=6)
+        details_box.pack(fill="x", ipady=8)
 
-        # Target Path Row
-        path_row = ctk.CTkFrame(details_box, fg_color="transparent", corner_radius=0)
-        path_row.pack(fill="x", padx=14, pady=4)
+        # Target Path
+        row1 = ctk.CTkFrame(details_box, fg_color="transparent", corner_radius=0)
+        row1.pack(fill="x", padx=14, pady=3)
         ctk.CTkLabel(
-            path_row,
-            text="TARGET PATH :",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["accent_primary"],
-            width=120,
+            row1,
+            text="TARGET PATH    :",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_MUTED_LAVENDER,
+            width=135,
             anchor="w",
         ).pack(side="left")
         self.lbl_file_path = ctk.CTkLabel(
-            path_row,
-            text="No target file specified",
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
-            text_color=PALETTE["text_main"],
+            row1,
+            text="No target file currently designated",
+            font=FONT_BODY,
+            text_color=COLOR_TEXT,
             anchor="w",
         )
         self.lbl_file_path.pack(side="left", fill="x", expand=True)
 
-        # Target Size Row
-        size_row = ctk.CTkFrame(details_box, fg_color="transparent", corner_radius=0)
-        size_row.pack(fill="x", padx=14, pady=4)
+        # Target Size
+        row2 = ctk.CTkFrame(details_box, fg_color="transparent", corner_radius=0)
+        row2.pack(fill="x", padx=14, pady=3)
         ctk.CTkLabel(
-            size_row,
-            text="TARGET SIZE :",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["accent_primary"],
-            width=120,
+            row2,
+            text="ALLOCATED SIZE :",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_MUTED_LAVENDER,
+            width=135,
             anchor="w",
         ).pack(side="left")
         self.lbl_file_size = ctk.CTkLabel(
-            size_row,
+            row2,
             text="—",
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
-            text_color=PALETTE["text_main"],
+            font=FONT_BODY,
+            text_color=COLOR_TEXT,
             anchor="w",
         )
         self.lbl_file_size.pack(side="left", fill="x", expand=True)
 
-        # Pre-Wipe SHA-256 Row
-        hash_row = ctk.CTkFrame(details_box, fg_color="transparent", corner_radius=0)
-        hash_row.pack(fill="x", padx=14, pady=4)
+        # Pre-Wipe SHA-256
+        row3 = ctk.CTkFrame(details_box, fg_color="transparent", corner_radius=0)
+        row3.pack(fill="x", padx=14, pady=3)
         ctk.CTkLabel(
-            hash_row,
-            text="PRE-WIPE SHA:",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["accent_primary"],
-            width=120,
+            row3,
+            text="PRE-WIPE SHA256:",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_MUTED_LAVENDER,
+            width=135,
             anchor="w",
         ).pack(side="left")
         self.lbl_file_hash = ctk.CTkLabel(
-            hash_row,
+            row3,
             text="—",
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
-            text_color=PALETTE["text_main"],
+            font=FONT_BODY,
+            text_color=COLOR_SUCCESS_LILAC,
             anchor="w",
         )
         self.lbl_file_hash.pack(side="left", fill="x", expand=True)
 
     def _build_controls_panel(self):
-        """Panel 02: Protocol Selection, Operator Signature, and Primary Execution Button."""
+        """Structural Card 02: Protocol Configuration & Weighty Destructive Action."""
         panel = ctk.CTkFrame(
             self.main_container,
-            fg_color=PALETTE["accent_secondary"],
-            corner_radius=0,
+            fg_color=COLOR_PANEL,
+            border_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
+            corner_radius=0,
         )
         panel.pack(fill="x", pady=(0, 16))
 
-        # Panel Header Bar
-        header_bar = ctk.CTkFrame(panel, fg_color=PALETTE["bg_main"], corner_radius=0)
+        # Panel Header
+        header_bar = ctk.CTkFrame(panel, fg_color=COLOR_PANEL_ALT, corner_radius=0)
         header_bar.pack(fill="x", padx=1, pady=1)
 
-        header_lbl = ctk.CTkLabel(
+        section_lbl = ctk.CTkLabel(
             header_bar,
-            text="// 02. PROTOCOL SPECIFICATION & EXECUTION CONTROL",
-            font=ctk.CTkFont(family=self.gothic_family, size=13, weight="bold"),
-            text_color=PALETTE["text_main"],
+            text="┌─ [ 02 ] OVERWRITE PROTOCOL SPECIFICATION & EXECUTION GATING",
+            font=FONT_HEADER,
+            text_color=COLOR_ACCENT_LAVENDER,
         )
-        header_lbl.pack(anchor="w", padx=16, pady=8)
+        section_lbl.pack(side="left", padx=16, pady=10)
 
-        content_area = ctk.CTkFrame(panel, fg_color="transparent", corner_radius=0)
-        content_area.pack(fill="x", padx=16, pady=14)
+        content = ctk.CTkFrame(panel, fg_color="transparent", corner_radius=0)
+        content.pack(fill="x", padx=18, pady=14)
 
-        grid_frame = ctk.CTkFrame(content_area, fg_color="transparent", corner_radius=0)
-        grid_frame.pack(fill="x", pady=(0, 14))
+        # Dual Input Grid
+        grid = ctk.CTkFrame(content, fg_color="transparent", corner_radius=0)
+        grid.pack(fill="x", pady=(0, 14))
 
         # Protocol Dropdown Box
-        proto_box = ctk.CTkFrame(grid_frame, fg_color="transparent", corner_radius=0)
-        proto_box.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        left_col = ctk.CTkFrame(grid, fg_color="transparent", corner_radius=0)
+        left_col.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
         ctk.CTkLabel(
-            proto_box,
-            text="SANITIZATION PROTOCOL",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["text_main"],
-        ).pack(anchor="w", pady=(0, 6))
+            left_col,
+            text="SANITIZATION PROTOCOL STANDARD",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_MUTED_LAVENDER,
+        ).pack(anchor="w", pady=(0, 5))
 
         self.protocol_dropdown = ctk.CTkOptionMenu(
-            proto_box,
+            left_col,
             values=list(self.protocol_map.keys()),
-            fg_color=PALETTE["bg_main"],
-            button_color=PALETTE["accent_secondary"],
-            button_hover_color=PALETTE["accent_primary"],
-            text_color=PALETTE["text_main"],
-            dropdown_fg_color=PALETTE["accent_secondary"],
-            dropdown_text_color=PALETTE["text_main"],
-            dropdown_hover_color=PALETTE["accent_primary"],
-            height=38,
+            fg_color=COLOR_BG,
+            button_color=COLOR_BORDER_PLUM,
+            button_hover_color=COLOR_ACCENT_AMETHYST,
+            text_color=COLOR_TEXT,
+            dropdown_fg_color=COLOR_PANEL,
+            dropdown_text_color=COLOR_TEXT,
+            dropdown_hover_color=COLOR_ACCENT_AMETHYST,
+            height=40,
             corner_radius=0,
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
+            font=FONT_BODY,
         )
         self.protocol_dropdown.pack(fill="x")
         self.protocol_dropdown.set(list(self.protocol_map.keys())[0])
 
         # Operator Signature Box
-        operator_box = ctk.CTkFrame(grid_frame, fg_color="transparent", corner_radius=0)
-        operator_box.pack(side="right", fill="x", expand=True, padx=(10, 0))
+        right_col = ctk.CTkFrame(grid, fg_color="transparent", corner_radius=0)
+        right_col.pack(side="right", fill="x", expand=True, padx=(10, 0))
 
         ctk.CTkLabel(
-            operator_box,
-            text="OPERATOR SIGNATURE / IDENTITY",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["text_main"],
-        ).pack(anchor="w", pady=(0, 6))
+            right_col,
+            text="OPERATOR AUTHENTICATION SIGNATURE",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_MUTED_LAVENDER,
+        ).pack(anchor="w", pady=(0, 5))
 
         self.entry_operator = ctk.CTkEntry(
-            operator_box,
-            fg_color=PALETTE["bg_main"],
-            border_color=PALETTE["accent_primary"],
+            right_col,
+            fg_color=COLOR_BG,
+            border_color=COLOR_BORDER_PLUM,
             border_width=1,
-            text_color=PALETTE["text_main"],
-            placeholder_text="SecOps Lead / Forensic Officer",
-            height=38,
+            text_color=COLOR_TEXT,
+            placeholder_text="SecOps Lead / Forensic Investigator",
+            height=40,
             corner_radius=0,
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
+            font=FONT_BODY,
         )
         self.entry_operator.pack(fill="x")
-        self.entry_operator.insert(0, "SecOps Engineer")
+        self.entry_operator.insert(0, "SecOps Investigator")
 
-        # Primary Execution Button (Solid fill with 2px border)
+        # Destructive Primary Action Button (Weighty dark aubergine with electric violet border)
         self.btn_execute = ctk.CTkButton(
-            content_area,
-            text="[ ⚔ ]  EXECUTE SANITIZATION & FORENSIC PURGE",
-            font=ctk.CTkFont(family=self.gothic_family, size=14, weight="bold"),
-            fg_color=PALETTE["accent_secondary"],
-            hover_color=PALETTE["accent_primary"],
-            border_color=PALETTE["accent_primary"],
+            content,
+            text="INITIATE SECURE ERASURE",
+            font=FONT_BUTTON,
+            fg_color=COLOR_DANGER_AUBERGINE,
+            hover_color=COLOR_ACCENT_AMETHYST,
+            border_color=COLOR_DANGER_BORDER,
             border_width=2,
-            text_color=PALETTE["text_main"],
-            height=48,
+            text_color=COLOR_TEXT,
+            height=54,
             corner_radius=0,
             command=self._on_execute_click,
         )
         self.btn_execute.pack(fill="x")
 
     def _build_telemetry_panel(self):
-        """Panel 03: Real-Time Telemetry, Entropy Display, and Live Console Stream."""
+        """Structural Card 03: Monospace Terminal Console & Forensic Telemetry."""
         panel = ctk.CTkFrame(
             self.main_container,
-            fg_color=PALETTE["accent_secondary"],
-            corner_radius=0,
+            fg_color=COLOR_PANEL,
+            border_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
+            corner_radius=0,
         )
         panel.pack(fill="both", expand=True, pady=(0, 16))
 
-        # Panel Header Bar with Shannon Entropy readout
-        header_bar = ctk.CTkFrame(panel, fg_color=PALETTE["bg_main"], corner_radius=0)
+        # Panel Header with Entropy Value Display
+        header_bar = ctk.CTkFrame(panel, fg_color=COLOR_PANEL_ALT, corner_radius=0)
         header_bar.pack(fill="x", padx=1, pady=1)
 
-        header_lbl = ctk.CTkLabel(
+        section_lbl = ctk.CTkLabel(
             header_bar,
-            text="// 03. LIVE FORENSIC TELEMETRY & AUDIT STREAM",
-            font=ctk.CTkFont(family=self.gothic_family, size=13, weight="bold"),
-            text_color=PALETTE["text_main"],
+            text="┌─ [ 03 ] FORENSIC AUDIT STREAM & SHANNON ENTROPY TELEMETRY",
+            font=FONT_HEADER,
+            text_color=COLOR_ACCENT_LAVENDER,
         )
-        header_lbl.pack(side="left", padx=16, pady=8)
+        section_lbl.pack(side="left", padx=16, pady=10)
 
-        # Entropy Badge (Gothic Readout)
+        # Gothic-Technical Entropy Metric Badge
         self.entropy_badge = ctk.CTkLabel(
             header_bar,
-            text="ENTROPY H(X): — bits/byte",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            text_color=PALETTE["text_main"],
-            fg_color=PALETTE["accent_secondary"],
+            text="SHANNON ENTROPY H(X): — bits/byte",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_SUCCESS_LILAC,
+            fg_color=COLOR_BG,
             corner_radius=0,
-            padx=12,
+            padx=14,
             pady=4,
         )
         self.entropy_badge.pack(side="right", padx=16, pady=6)
 
-        content_area = ctk.CTkFrame(panel, fg_color="transparent", corner_radius=0)
-        content_area.pack(fill="both", expand=True, padx=16, pady=14)
+        content = ctk.CTkFrame(panel, fg_color="transparent", corner_radius=0)
+        content.pack(fill="both", expand=True, padx=18, pady=14)
 
-        # Progress Bar
+        # Monospace Progress Bar
         self.progress_bar = ctk.CTkProgressBar(
-            content_area,
-            fg_color=PALETTE["bg_main"],
-            progress_color=PALETTE["accent_primary"],
+            content,
+            fg_color=COLOR_BG,
+            progress_color=COLOR_ACCENT_AMETHYST,
             height=8,
             corner_radius=0,
         )
@@ -468,82 +501,93 @@ class SentinelPurgeApp(ctk.CTk):
         self.progress_bar.set(0.0)
 
         self.lbl_progress = ctk.CTkLabel(
-            content_area,
-            text="Ready (0.0%)",
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
-            text_color=PALETTE["text_main"],
+            content,
+            text="IDLE // BUFFER READY (0.0%)",
+            font=FONT_BODY,
+            text_color=COLOR_MUTED_LAVENDER,
             anchor="w",
         )
         self.lbl_progress.pack(anchor="w", pady=(0, 10))
 
-        # Embedded Gothic Console Stream
+        # Terminal Console Box (True Monospace with Deep Black-Violet Canvas)
         self.terminal_box = ctk.CTkTextbox(
-            content_area,
-            fg_color=PALETTE["bg_terminal"],
-            text_color=PALETTE["text_main"],
-            font=ctk.CTkFont(family=MONO_FONT, size=11),
+            content,
+            fg_color=COLOR_TERMINAL_BG,
+            text_color=COLOR_TEXT,
+            font=FONT_BODY,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
+            border_color=COLOR_BORDER_PLUM,
             corner_radius=0,
             height=200,
             wrap="word",
         )
-        self.terminal_box.pack(fill="both", expand=True, pady=(0, 12))
+        self.terminal_box.pack(fill="both", expand=True, pady=(0, 14))
 
-        # Certificate Quick Actions Bar (Hollow Buttons)
-        actions_bar = ctk.CTkFrame(content_area, fg_color="transparent", corner_radius=0)
+        # Audit Certificate Action Bar (Hollow Architectural Buttons)
+        actions_bar = ctk.CTkFrame(content, fg_color="transparent", corner_radius=0)
         actions_bar.pack(fill="x")
 
         self.btn_open_cert = ctk.CTkButton(
             actions_bar,
-            text="[ 📄 ]  OPEN AUDIT CERTIFICATE",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            fg_color="transparent",
-            hover_color=PALETTE["accent_secondary"],
+            text="VIEW AUDIT CERTIFICATE",
+            font=FONT_BUTTON,
+            fg_color=COLOR_PANEL_ALT,
+            hover_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
-            text_color=PALETTE["accent_primary"],
-            height=34,
+            border_color=COLOR_BORDER_PLUM,
+            text_color=COLOR_ACCENT_LAVENDER,
+            height=38,
             corner_radius=0,
             command=self._open_last_certificate,
             state="disabled",
         )
-        self.btn_open_cert.pack(side="left", padx=(0, 10))
+        self.btn_open_cert.pack(side="left", padx=(0, 12))
 
         self.btn_open_dir = ctk.CTkButton(
             actions_bar,
-            text="[ 📁 ]  VIEW CERTIFICATES FOLDER",
-            font=ctk.CTkFont(family=MONO_FONT, size=11, weight="bold"),
-            fg_color="transparent",
-            hover_color=PALETTE["accent_secondary"],
+            text="OPEN CERTIFICATES ARCHIVE",
+            font=FONT_BUTTON,
+            fg_color=COLOR_PANEL_ALT,
+            hover_color=COLOR_BORDER_PLUM,
             border_width=1,
-            border_color=PALETTE["accent_primary"],
-            text_color=PALETTE["accent_primary"],
-            height=34,
+            border_color=COLOR_BORDER_PLUM,
+            text_color=COLOR_ACCENT_LAVENDER,
+            height=38,
             corner_radius=0,
             command=self._open_certificates_folder,
         )
         self.btn_open_dir.pack(side="left")
 
     def _build_footer(self):
-        """Footer Section with version and compliance signature."""
-        footer_lbl = ctk.CTkLabel(
-            self.main_container,
-            text="SENTINEL-PURGE v1.0.0 // INDUSTRIAL-GOTHIC FORENSIC SANITIZATION FRAMEWORK",
-            font=ctk.CTkFont(family=MONO_FONT, size=10),
-            text_color=PALETTE["accent_primary"],
+        """Bottom Schematic Annotations."""
+        foot_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", corner_radius=0)
+        foot_frame.pack(fill="x", pady=(4, 0))
+
+        foot_lbl = ctk.CTkLabel(
+            foot_frame,
+            text="SENTINEL-PURGE FORENSIC ARCHITECTURE // ISO-8601 COMPLIANT AUDIT // AUTHORIZED SECOPS USE ONLY",
+            font=FONT_SUBTITLE,
+            text_color=COLOR_BORDER_PLUM,
         )
-        footer_lbl.pack(pady=(0, 5))
+        foot_lbl.pack(side="left")
+
+        ver_lbl = ctk.CTkLabel(
+            foot_frame,
+            text="v1.1.0-GOTHIC",
+            font=FONT_SUBTITLE,
+            text_color=COLOR_BORDER_PLUM,
+        )
+        ver_lbl.pack(side="right")
 
     # -------------------------------------------------------------------------
-    # EVENT HANDLERS & SANITIZATION ENGINE INTEGRATION
+    # OPERATIONAL LOGIC & CORE ENGINE EVENT HANDLERS
     # -------------------------------------------------------------------------
     def _select_file_dialog(self):
         if self.is_sanitizing:
             return
 
         file_path = filedialog.askopenfilename(
-            title="Select Target File for Secure Sanitization",
+            title="Designate Target File for Permanent Sanitization",
         )
         if not file_path:
             return
@@ -553,7 +597,7 @@ class SentinelPurgeApp(ctk.CTk):
     def _set_selected_target(self, target: Path):
         self.selected_file = target.resolve()
         if not self.selected_file.exists():
-            messagebox.showerror("Error", f"Target file does not exist: {self.selected_file}")
+            messagebox.showerror("Target Inaccessible", f"Selected target not found:\n{self.selected_file}")
             return
 
         try:
@@ -563,21 +607,22 @@ class SentinelPurgeApp(ctk.CTk):
 
         self.lbl_file_path.configure(text=str(self.selected_file))
         self.lbl_file_size.configure(
-            text=f"{format_bytes(self.file_size_bytes)} ({self.file_size_bytes:,} bytes)"
+            text=f"{format_bytes(self.file_size_bytes)}  ({self.file_size_bytes:,} BYTES)"
         )
-        self.lbl_file_hash.configure(text="Calculating SHA-256...")
+        self.lbl_file_hash.configure(text="COMPUTING STREAMING SHA-256 HASH...")
 
-        self._log("TARGET", f"Target selected: {self.selected_file.name} ({format_bytes(self.file_size_bytes)})", PALETTE["text_main"])
+        self._log("TARGET", f"Designated target: {self.selected_file.name} [{format_bytes(self.file_size_bytes)}]", COLOR_ACCENT_LAVENDER)
 
-        # Check safety guardrails immediately
+        # Validate Scope Guardrails Immediately
         scope_info = validate_sanitization_target(self.selected_file)
         if not scope_info.is_safe:
-            self._log("GUARDRAIL", f"CRITICAL: Target protected! Reason: {scope_info.rejection_reason}", PALETTE["accent_primary"])
-            self.status_badge.configure(text="[ TARGET BLOCKED ]")
+            self._log("GUARDRAIL", f"INTERCEPT: Target is protected! Reason: {scope_info.rejection_reason}", COLOR_DANGER_BORDER)
+            self.status_badge.configure(text="[ CRITICAL: SCOPE INTERCEPT ]", text_color=COLOR_DANGER_BORDER)
         else:
-            self.status_badge.configure(text="[ TARGET VALIDATED ]")
+            self._log("GUARDRAIL", f"Scope check passed: {scope_info.media_type.value}", COLOR_MUTED_LAVENDER)
+            self.status_badge.configure(text="[ TARGET VALIDATED ]", text_color=COLOR_SUCCESS_LILAC)
 
-        # Compute SHA-256 preview in background thread
+        # Compute Pre-Wipe SHA-256 Preview in Background Thread
         threading.Thread(target=self._compute_hash_preview, daemon=True).start()
 
     def _compute_hash_preview(self):
@@ -586,68 +631,68 @@ class SentinelPurgeApp(ctk.CTk):
         try:
             h = compute_file_sha256(self.selected_file)
             self.after(0, lambda: self.lbl_file_hash.configure(text=h))
-            self.after(0, lambda: self._log("HASH", f"Pre-wipe SHA-256 computed: {h[:16]}...{h[-16:]}", PALETTE["accent_primary"]))
+            self.after(0, lambda: self._log("HASH", f"Pre-wipe SHA-256 established: {h[:20]}...{h[-20:]}", COLOR_MUTED_LAVENDER))
         except Exception as e:
-            self.after(0, lambda: self.lbl_file_hash.configure(text=f"Error: {e}"))
+            self.after(0, lambda: self.lbl_file_hash.configure(text=f"HASH ERROR: {e}"))
 
     def _on_execute_click(self):
         if self.is_sanitizing:
             return
 
         if not self.selected_file:
-            messagebox.showwarning("Target Required", "Please select a target file first.")
+            messagebox.showwarning("Target Required", "Designate a target file before initiating sanitization.")
             return
 
         if not self.selected_file.exists():
-            messagebox.showerror("Target Missing", "Selected target file no longer exists.")
+            messagebox.showerror("Target Missing", "Designated target file is no longer accessible on disk.")
             return
 
-        # Validate Guardrails
+        # Guardrail Validation
         scope_info = validate_sanitization_target(self.selected_file)
         if not scope_info.is_safe:
-            messagebox.showerror("Sanitization Blocked", f"Target is protected by security guardrails:\n{scope_info.rejection_reason}")
+            messagebox.showerror("Execution Aborted", f"Target is shielded by system guardrails:\n{scope_info.rejection_reason}")
             return
 
         selected_label = self.protocol_dropdown.get()
         algorithm = self.protocol_map.get(selected_label, SanitizationAlgorithm.NIST_800_88_CLEAR)
-        operator = self.entry_operator.get().strip() or "SecOps Operator"
+        operator = self.entry_operator.get().strip() or "SecOps Investigator"
 
-        # Confirmation Dialog
+        # Explicit Forensic Confirmation
         confirm_msg = (
-            f"WARNING: PERMANENT DESTRUCTIVE SANITIZATION\n\n"
-            f"Target: {self.selected_file.name}\n"
-            f"Size: {format_bytes(self.file_size_bytes)}\n"
-            f"Algorithm: {algorithm.value}\n"
-            f"Operator: {operator}\n\n"
-            f"This operation will cryptographically overwrite the target sectors and unlink the filesystem metadata.\n"
-            f"Are you sure you want to proceed?"
+            f"INITIATE IRREVERSIBLE FORENSIC ERASURE?\n\n"
+            f"TARGET    : {self.selected_file.name}\n"
+            f"ALLOCATION: {format_bytes(self.file_size_bytes)}\n"
+            f"ALGORITHM : {algorithm.value}\n"
+            f"OPERATOR  : {operator}\n\n"
+            f"All physical clusters allocated to this inode will be overwritten with cryptographic passes, "
+            f"verified via Shannon Entropy sampling, and the file table entry will be unlinked."
         )
-        if not messagebox.askyesno("Confirm Sanitization", confirm_msg, icon="warning"):
+        if not messagebox.askyesno("CONFIRM DESTRUCTION", confirm_msg, icon="warning"):
             return
 
-        # Begin Background Execution
         self._start_sanitization(algorithm, operator)
 
     def _start_sanitization(self, algorithm: SanitizationAlgorithm, operator: str):
         self.is_sanitizing = True
         self.btn_execute.configure(
-            text="[ ⏳ ]  SANITIZING IN PROGRESS...",
+            text="ERASURE IN PROGRESS...",
+            fg_color=COLOR_BORDER_PLUM,
             state="disabled",
         )
-        self.target_btn_card.configure(state="disabled")
+        self.btn_select_target.configure(state="disabled")
         self.protocol_dropdown.configure(state="disabled")
-        self.status_badge.configure(text="[ SANITIZING ACTIVE ]")
+        self.status_badge.configure(text="[ ACTIVE SANITIZATION ]", text_color=COLOR_ACCENT_LAVENDER)
         self.progress_bar.set(0.0)
-        self.lbl_progress.configure(text="Initializing overwrite buffers...")
+        self.lbl_progress.configure(text="DISPATCHING CHUNKED OVERWRITE PASS...")
 
-        self._log("EXECUTE", f"Starting sanitization workflow ({algorithm.value})", PALETTE["accent_primary"])
+        self._log("EXECUTE", f"Engaging sanitization pipeline ({algorithm.value})", COLOR_ACCENT_AMETHYST)
 
-        worker_thread = threading.Thread(
+        worker = threading.Thread(
             target=self._run_sanitization_worker,
             args=(self.selected_file, algorithm, operator),
             daemon=True,
         )
-        worker_thread.start()
+        worker.start()
 
     def _run_sanitization_worker(self, target_path: Path, algorithm: SanitizationAlgorithm, operator: str):
         def progress_callback(pass_num: int, total_passes: int, bytes_written: int, total_bytes: int):
@@ -655,7 +700,9 @@ class SentinelPurgeApp(ctk.CTk):
             overall = ((pass_num - 1) + fraction) / total_passes
             pct = overall * 100.0
 
-            status_msg = f"Pass {pass_num}/{total_passes} — Overwriting: {format_bytes(bytes_written)} / {format_bytes(total_bytes)} ({pct:5.1f}%)"
+            status_msg = (
+                f"PASS {pass_num}/{total_passes} // WRITTEN: {format_bytes(bytes_written)} / {format_bytes(total_bytes)} ({pct:5.1f}%)"
+            )
             self.after(0, lambda: self._update_progress(overall, status_msg))
 
         try:
@@ -676,62 +723,66 @@ class SentinelPurgeApp(ctk.CTk):
     def _on_sanitization_finished(self, result):
         self.is_sanitizing = False
         self.btn_execute.configure(
-            text="[ ⚔ ]  EXECUTE SANITIZATION & FORENSIC PURGE",
+            text="INITIATE SECURE ERASURE",
+            fg_color=COLOR_DANGER_AUBERGINE,
             state="normal",
         )
-        self.target_btn_card.configure(state="normal")
+        self.btn_select_target.configure(state="normal")
         self.protocol_dropdown.configure(state="normal")
 
         if result.status == "completed":
             self.progress_bar.set(1.0)
-            self.lbl_progress.configure(text="Sanitization & Verification Completed 100%")
-            self.status_badge.configure(text="[ PURGE VERIFIED ]")
+            self.lbl_progress.configure(text="CYCLE COMPLETE // 100% OVERWRITE & VERIFICATION ATTAINED")
+            self.status_badge.configure(text="[ DESTRUCTION VERIFIED ]", text_color=COLOR_SUCCESS_LILAC)
 
-            # Entropy Score Readout
+            # Shannon Entropy Extraction
             entropy = result.verification.get("average_entropy", 0.0)
             self.entropy_badge.configure(
-                text=f"ENTROPY H(X): {entropy:.4f} bits/byte [PASS]",
+                text=f"SHANNON ENTROPY H(X): {entropy:.4f} bits/byte [PASS >= 7.2]",
+                text_color=COLOR_SUCCESS_LILAC,
             )
 
             self.last_certificate_path = result.certificate_path
             if self.last_certificate_path and Path(self.last_certificate_path).exists():
                 self.btn_open_cert.configure(state="normal")
 
-            self._log("SUCCESS", f"Sanitization complete for {result.original_filename}", PALETTE["text_main"])
-            self._log("VERIFY", f"Verification Status: PASSED (Shannon Entropy: {entropy:.4f} bits/byte)", PALETTE["accent_primary"])
-            self._log("CERT", f"Audit certificate emitted: {result.certificate_path}", PALETTE["text_main"])
+            self._log("SUCCESS", f"Sanitization successful: {result.original_filename}", COLOR_SUCCESS_LILAC)
+            self._log("VERIFY", f"Statistical Entropy H(X): {entropy:.4f} bits/byte (Threshold satisfied)", COLOR_SUCCESS_LILAC)
+            self._log("CERT", f"Signed audit certificate generated: {result.certificate_path}", COLOR_ACCENT_LAVENDER)
 
-            # Clear file selection
+            # Inode Unlinked Notice
             self.selected_file = None
-            self.lbl_file_path.configure(text="Target erased and unlinked from filesystem.")
-            self.lbl_file_size.configure(text="0 B (Truncated & Unlinked)")
+            self.lbl_file_path.configure(text="[ INODE UNLINKED & METADATA DESTROYED ]")
+            self.lbl_file_size.configure(text="0 B (TRUNCATED TO NULL)")
             self.lbl_file_hash.configure(text="—")
 
             messagebox.showinfo(
-                "Sanitization Successful",
-                f"Target file successfully sanitized and verified.\n\n"
-                f"Job ID: {result.id}\n"
-                f"Shannon Entropy: {entropy:.4f} bits/byte\n"
-                f"Certificate: {result.certificate_path}",
+                "Sanitization Complete",
+                f"Destruction and entropy verification confirmed.\n\n"
+                f"JOB IDENTIFIER : {result.id}\n"
+                f"SHANNON ENTROPY: {entropy:.4f} bits/byte\n"
+                f"CERTIFICATE    : {result.certificate_path}",
             )
         else:
-            self.status_badge.configure(text="[ OPERATION FAILED ]")
-            self._log("ERROR", f"Sanitization failed: {result.error_message}", PALETTE["accent_primary"])
-            messagebox.showerror("Sanitization Failed", f"Sanitization error:\n{result.error_message}")
+            self.status_badge.configure(text="[ PIPELINE ERROR ]", text_color=COLOR_DANGER_BORDER)
+            self._log("ERROR", f"Sanitization aborted: {result.error_message}", COLOR_DANGER_BORDER)
+            messagebox.showerror("Pipeline Failure", f"Sanitization error occurred:\n{result.error_message}")
 
     def _on_sanitization_error(self, error_msg: str):
         self.is_sanitizing = False
         self.btn_execute.configure(
-            text="[ ⚔ ]  EXECUTE SANITIZATION & FORENSIC PURGE",
+            text="INITIATE SECURE ERASURE",
+            fg_color=COLOR_DANGER_AUBERGINE,
             state="normal",
         )
-        self.target_btn_card.configure(state="normal")
+        self.btn_select_target.configure(state="normal")
         self.protocol_dropdown.configure(state="normal")
-        self.status_badge.configure(text="[ ERROR ]")
-        self._log("EXCEPTION", f"Unexpected error during execution: {error_msg}", PALETTE["accent_primary"])
-        messagebox.showerror("Execution Error", f"An unexpected error occurred:\n{error_msg}")
+        self.status_badge.configure(text="[ EXCEPTION HALTED ]", text_color=COLOR_DANGER_BORDER)
+        self._log("ERROR", f"Critical exception during execution: {error_msg}", COLOR_DANGER_BORDER)
+        messagebox.showerror("Critical Error", f"Unhandled execution exception:\n{error_msg}")
 
-    def _log(self, tag: str, message: str, color_hex: str = "#CBC3E3"):
+    def _log(self, tag: str, message: str, color_hex: str = COLOR_TEXT):
+        """Append saturation-coded monospace log lines."""
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         log_entry = f"[{timestamp}] [{tag:<9}] {message}\n"
         self.terminal_box.insert("end", log_entry)
@@ -742,7 +793,7 @@ class SentinelPurgeApp(ctk.CTk):
             return
         cert_path = Path(self.last_certificate_path).resolve()
         if not cert_path.exists():
-            messagebox.showerror("Error", "Certificate file not found.")
+            messagebox.showerror("File Error", "Audit certificate file cannot be found on disk.")
             return
 
         try:
@@ -753,7 +804,7 @@ class SentinelPurgeApp(ctk.CTk):
             else:
                 subprocess.run(["xdg-open", str(cert_path)], check=True)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to open certificate file: {e}")
+            messagebox.showerror("Error", f"Failed to open certificate: {e}")
 
     def _open_certificates_folder(self):
         cert_dir = Path("certificates").resolve()
@@ -766,11 +817,11 @@ class SentinelPurgeApp(ctk.CTk):
             else:
                 subprocess.run(["xdg-open", str(cert_dir)], check=True)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to open certificates directory: {e}")
+            messagebox.showerror("Error", f"Failed to open archive folder: {e}")
 
 
 # =============================================================================
-# ENTRY POINT
+# APPLICATION ENTRYPOINT
 # =============================================================================
 def main():
     app = SentinelPurgeApp()
