@@ -1,102 +1,102 @@
-# Sentinel-Purge 🛡️
+# Sentinel-Purge
 
-> **NIST SP 800-88 Compliant Secure Data Sanitization & Forensic Verification Engine**
+> **NIST SP 800-88 Compliant Data Sanitization & Forensic Verification Engine**
 
-Sentinel-Purge is a standalone, forensic-grade, memory-efficient data sanitization and post-wipe verification framework. It reliably overwrites sensitive file artifacts, prevents residual data recovery from underlying storage clusters, scrambles directory table metadata, and emits tamper-evident audit certificates of destruction.
-
----
-
-## 🚀 Key Features
-
-- **NIST SP 800-88 Rev. 1 Alignment**: Implements certified logical overwrite algorithms (NIST Clear 1-Pass, DoD 5220.22-M 3-Pass, Fixed Zero-Fill).
-- **Target Scope Validation & Guardrails**: Automatically inspects targets and blocks destructive operations on OS directories (`C:\Windows`, `/bin`, `/boot`, `/etc`, etc.) and physical disk raw identifiers.
-- **Pre-Wipe Forensic Hashing**: Computes SHA-256 cryptographic hashes via 4KB streaming buffers before any mutation for immutable chain-of-custody proof.
-- **Independent Verification Engine**: Multi-zone binary sampling (Header, Body, Tail) with Shannon entropy calculations ($H \ge 7.2\text{ bits/byte}$) to detect any residual unwiped data.
-- **Directory Table Metadata Scrambling**: Renames files to cryptographically random 16-character strings, truncates to 0 bytes, and safely unlinks filesystem entries.
-- **Tamper-Evident Forensic Certificates**: Emits structured JSON certificates of destruction containing operator metadata, pre-wipe hashes, and verification telemetry.
-- **Secret-Key Authorized Operations**: Supports authorized Clear and Purge workflows protected by HMAC/secret-key verification and live audit trail recording.
-- **CLI & REST API Server**: Provides a complete command-line interface (`erasure.cli`) and Flask orchestration server (`erasure.server`).
+Sentinel-Purge is a standalone Python framework built for secure file sanitization, directory table metadata destruction, and post-wipe forensic verification. It prevents recovery of sensitive file artifacts from underlying storage blocks, scrambles directory entries, and generates signed JSON certificates of destruction for audit compliance.
 
 ---
 
-## 📁 Repository Structure
+### Core Capabilities
 
-```
+* **NIST SP 800-88 Rev. 1 Alignment**: Executes logical overwrite pipelines including NIST Clear (1-Pass random/zero overwrite), DoD 5220.22-M (3-Pass), and fixed pattern passes.
+* **Target Scope Guardrails**: Analyzes target paths before execution to block destructive operations against system directories (`C:\Windows`, `/bin`, `/boot`, `/etc`) and physical drive mount points.
+* **Pre-Wipe Chain of Custody**: Computes SHA-256 cryptographic hashes via 4KB stream buffers prior to file mutation to establish pre-sanitization state proof.
+* **Entropy-Based Verification Engine**: Samples post-wipe byte distributions across header, body, and tail offset zones, calculating Shannon Entropy ($H \ge 7.2\text{ bits/byte}$) to confirm random data transformation.
+* **Directory Metadata Obfuscation**: Scrambles original filenames to random 16-character strings, truncates file sizes to zero bytes, and unlinks filesystem nodes to mitigate metadata recovery.
+* **Structured Audit Certificates**: Emits JSON certificates detailing operator metadata, execution parameters, pre-wipe hashes, and post-wipe entropy scores.
+* **Secret-Key Authorized Operations**: Supports authenticated Clear and Purge execution paths backed by HMAC secret-key validation and append-only audit logging.
+* **CLI & REST API Interfaces**: Includes an interactive CLI (`erasure.cli`) alongside a lightweight Flask management server (`erasure.server`).
+
+---
+
+### Repository Layout
+
+```text
 sentinel-purge/
 ├── erasure/                   # Core sanitization & verification package
 │   ├── __init__.py
 │   ├── __main__.py            # CLI entry point (`python -m erasure`)
 │   ├── audit_trail.py         # Structured audit logging & persistence
-│   ├── cli.py                 # Interactive & automated CLI tool
-│   ├── device_detection.py    # Target scope validator & media guardrails
-│   ├── handler.py             # Authorized Clear & Purge handlers
+│   ├── cli.py                 # Interactive & automated CLI entrypoint
+│   ├── device_detection.py    # Path inspection & system guardrails
+│   ├── handler.py             # Authenticated Clear & Purge handlers
 │   ├── methods.py             # Binary pattern generators & overwrite passes
-│   ├── sanitizer.py           # End-to-end sanitization pipeline & certificates
-│   ├── server.py              # Lightweight Flask REST server
-│   ├── static/                # Static web UI assets
-│   └── verification.py        # Shannon entropy & binary sample verification
+│   ├── sanitizer.py           # Sanitization orchestrator & certificate generator
+│   ├── server.py              # Flask REST server implementation
+│   ├── static/                # Web UI static assets
+│   └── verification.py        # Shannon Entropy & binary sample verification
 ├── tests/
-│   └── erasure/               # Comprehensive unit test suite (28 tests)
+│   └── erasure/               # Unit test suite (28 tests)
 │       ├── test_handler.py
 │       ├── test_methods.py
 │       ├── test_sanitizer.py
 │       └── test_verification.py
 ├── .gitignore
-├── pytest.ini                 # Pytest runner configuration
+├── pytest.ini                 # Test suite configuration
 ├── requirements.txt           # Project dependencies
 └── README.md
 ```
 
 ---
 
-## 🛠️ Installation & Setup
+### Setup & Requirements
 
-### Prerequisites
-- Python 3.10+ (Recommended: Python 3.12)
-- `pip`
+#### Prerequisites
+- Python 3.10+ (Tested on Python 3.12)
+- `pip` package manager
 
-### Install Dependencies
+#### Dependency Installation
 ```bash
 pip install -r requirements.txt
 ```
 
 ---
 
-## 🧪 Running Tests
+### Running Tests
 
-Run the complete test suite across all erasure and verification components:
+Execute the 28-test suite across sanitization, safety guardrail, and verification routines:
 
 ```bash
-# Run tests with pytest
+# Run via pytest
 pytest tests/erasure/ -v
 
-# Or run using Python's built-in unittest runner
+# Run via unittest
 python -m unittest discover -s tests/erasure -p "test_*.py" -v
 ```
 
 ---
 
-## 💻 Usage
+### Usage Guide
 
-### 1. Command Line Interface (CLI)
+#### 1. Command Line Interface
 
 ```bash
-# Run the interactive CLI
+# Interactive mode
 python -m erasure
 
-# Or invoke specific subcommands
-python -m erasure sanitize /path/to/target.dat --method NIST_800_88_CLEAR --operator "Investigator"
+# Direct execution commands
+python -m erasure sanitize /path/to/target.dat --method NIST_800_88_CLEAR --operator "SecOps Engineer"
 python -m erasure inspect /path/to/target.dat
 python -m erasure validate-target /path/to/target.dat
 ```
 
-### 2. Python API
+#### 2. Python Programmatic API
 
 ```python
 from erasure.sanitizer import sanitize_file
 from erasure.methods import SanitizationAlgorithm
 
-# Execute NIST Clear sanitization
+# Execute NIST Clear pipeline
 result = sanitize_file(
     target_path="confidential_document.pdf",
     algorithm=SanitizationAlgorithm.NIST_800_88_CLEAR,
@@ -105,22 +105,22 @@ result = sanitize_file(
 )
 
 if result.status == "completed":
-    print(f"[+] File securely sanitized: {result.original_filename}")
+    print(f"[+] Target sanitized: {result.original_filename}")
     print(f"    Pre-wipe SHA-256: {result.pre_wipe_sha256}")
-    print(f"    Certificate: {result.certificate_path}")
+    print(f"    Certificate generated: {result.certificate_path}")
 else:
-    print(f"[-] Sanitization failed: {result.error_message}")
+    print(f"[-] Operation failed: {result.error_message}")
 ```
 
-### 3. REST API Server
+#### 3. REST API Server
 
 ```bash
-# Launch the API server
+# Start management server on port 5000
 python -m erasure serve --port 5000
 ```
 
 ---
 
-## 📜 Standards Disclaimer
+### Operational Note
 
-This project implements procedural recommendations from **NIST SP 800-88 Rev. 1** (*Guidelines for Media Sanitization*). For flash storage (SSDs/NVMe), user-space file overwriting operates at the logical cluster level; full hardware-level sanitization on flash drives should utilize firmware-level ATA/NVMe Secure Erase.
+This tool implements user-space file overwriting and pattern sanitization aligned with NIST SP 800-88 Rev. 1 guidelines (Clear operations). On modern solid-state media (SSDs/NVMe), logical sector overwriting handles target cluster contents at the file-system layer. Complete physical block sanitization covering over-provisioned space requires drive-level ATA/NVMe Purge firmware commands.
