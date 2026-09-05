@@ -42,6 +42,8 @@ sentinel-purge/
 │       ├── test_sanitizer.py
 │       └── test_verification.py
 ├── .gitignore
+├── build.py                   # PyInstaller build automation script
+├── gui.py                     # CustomTkinter Desktop GUI application
 ├── pytest.ini                 # Test suite configuration
 ├── requirements.txt           # Project dependencies
 └── README.md
@@ -112,11 +114,28 @@ else:
     print(f"[-] Operation failed: {result.error_message}")
 ```
 
-#### 3. REST API Server
+#### 3. Desktop GUI (CustomTkinter)
+
+Launch the dark cyberpunk-themed forensic desktop application:
+
+```bash
+python gui.py
+```
+
+#### 4. REST API Server
 
 ```bash
 # Start management server on port 5000
 python -m erasure serve --port 5000
+```
+
+#### 5. Compile Standalone Executable (.exe)
+
+Compile `gui.py` into a single, standalone executable:
+
+```bash
+python build.py
+# Output: dist/Sentinel-Purge.exe
 ```
 
 ---

@@ -24,6 +24,7 @@ audit_logs.json
 *.tmp
 *.log
 *.bak
+*.spec
 
 # ===== OS =====
 .DS_Store
